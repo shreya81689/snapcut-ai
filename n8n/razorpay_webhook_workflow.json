@@ -1,0 +1,83 @@
+{
+  "name": "Razorpay Webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "razorpay-webhook",
+        "options": {}
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [ 250, 300 ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$node[\"Webhook\"].json[\"body\"][\"event\"]}}",
+              "value2": "payment.captured"
+            }
+          ]
+        }
+      },
+      "name": "If Payment Captured",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [ 450, 300 ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{$env[\"SUPABASE_URL\"]}}/rest/v1/users?id=eq.{{$node[\"Webhook\"].json[\"body\"][\"payload\"][\"payment\"][\"entity\"][\"notes\"][\"user_id\"]}}",
+        "authentication": "headerAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "credits",
+              "value": "={{$node[\"Webhook\"].json[\"body\"][\"payload\"][\"payment\"][\"entity\"][\"notes\"][\"credits_to_add\"]}} // Note: Add via RPC ideally"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Update User Credits",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 1,
+      "position": [ 650, 200 ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "2",
+          "name": "Supabase Service Role"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If Payment Captured",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Payment Captured": {
+      "main": [
+        [
+          {
+            "node": "Update User Credits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}
