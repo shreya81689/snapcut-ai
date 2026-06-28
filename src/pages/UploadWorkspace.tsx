@@ -276,10 +276,11 @@ export default function UploadWorkspace() {
         }
 
         if (json && json.url) {
-          setResult(json.url)
+          const secureUrl = json.url.startsWith('http://') ? json.url.replace(/^http:/, 'https:') : json.url
+          setResult(secureUrl)
           setStatus('completed')
-          localStorage.setItem('snapcut_current_result', json.url)
-          addToHistory(file, json.url)
+          localStorage.setItem('snapcut_current_result', secureUrl)
+          addToHistory(file, secureUrl)
           return
         } else {
           throw new Error('No image URL found in JSON response.')
@@ -317,11 +318,12 @@ export default function UploadWorkspace() {
   const handleDownload = async () => {
     if (!result) return
     try {
-      let downloadUrl = result
+      const targetUrl = result.startsWith('http://') ? result.replace(/^http:/, 'https:') : result
+      let downloadUrl = targetUrl
 
       // If remote cross-origin URL, fetch as blob first to bypass browser same-origin download restrictions
-      if (result.startsWith('http')) {
-        const response = await fetch(result)
+      if (targetUrl.startsWith('http')) {
+        const response = await fetch(targetUrl)
         const blob = await response.blob()
         downloadUrl = URL.createObjectURL(blob)
       }
@@ -333,7 +335,7 @@ export default function UploadWorkspace() {
       link.click()
       document.body.removeChild(link)
 
-      if (downloadUrl !== result) {
+      if (downloadUrl !== targetUrl) {
         URL.revokeObjectURL(downloadUrl)
       }
     } catch (error) {
@@ -585,9 +587,12 @@ export default function UploadWorkspace() {
                         className="h-8 w-8 text-primary hover:text-primary-foreground hover:bg-primary"
                         onClick={async () => {
                           try {
-                            let downloadUrl = item.resultUrl
-                            if (item.resultUrl.startsWith('http')) {
-                              const response = await fetch(item.resultUrl)
+                            const targetUrl = item.resultUrl.startsWith('http://') 
+                              ? item.resultUrl.replace(/^http:/, 'https:') 
+                              : item.resultUrl
+                            let downloadUrl = targetUrl
+                            if (targetUrl.startsWith('http')) {
+                              const response = await fetch(targetUrl)
                               const blob = await response.blob()
                               downloadUrl = URL.createObjectURL(blob)
                             }
@@ -599,7 +604,7 @@ export default function UploadWorkspace() {
                             link.click()
                             document.body.removeChild(link)
 
-                            if (downloadUrl !== item.resultUrl) {
+                            if (downloadUrl !== targetUrl) {
                               URL.revokeObjectURL(downloadUrl)
                             }
                           } catch (error) {
